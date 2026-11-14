@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16244f">
+<title>練習ノート|福岡大学女子バスケットボール部</title>
+<style>
+:root{
+  --navy:#16244f; --navy2:#2a3d7a; --bg:#f3f4f7; --card:#fff; --line:#dfe2ea;
+  --text:#1b1f2a; --sub:#6b7280; --ok:#0f7b4b; --ng:#c0392b; --accent:#d4a017;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP",Meiryo,sans-serif;font-size:16px}
+header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:10px 12px 0;padding-top:max(10px,env(safe-area-inset-top))}
+.hrow{display:flex;align-items:center;gap:8px}
+.hrow h1{font-size:17px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync{font-size:12px;padding:3px 8px;border-radius:10px;background:rgba(255,255,255,.15);white-space:nowrap}
+.sync.err{background:#c0392b}.sync.wait{background:#b7791f}
+.iconbtn{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:4px 9px;font-size:14px}
+.pick{display:flex;gap:6px;margin-top:8px;align-items:center}
+.pick input,.pick select{font-size:15px;padding:6px;border-radius:8px;border:none}
+.pick input[type=date]{flex:1;min-width:150px}
+.pick select{flex:none;width:76px}
+nav{display:flex;margin-top:8px}
+nav button{flex:1;background:none;border:none;color:#c9d1ea;font-size:15px;padding:10px 0;border-bottom:3px solid transparent;font-weight:600}
+nav button.on{color:#fff;border-bottom-color:var(--accent)}
+main{padding:12px;padding-bottom:120px;max-width:760px;margin:0 auto}
+.card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.card h2{font-size:15px;margin:0 0 10px;color:var(--navy);display:flex;align-items:center;gap:8px}
+.card h2 .grow{flex:1}
+label.f{display:block;font-size:12px;color:var(--sub);margin:6px 0 3px}
+input[type=text],input[type=number],input[type=time],textarea,select{font-family:inherit;font-size:16px;width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text)}
+textarea{min-height:64px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{min-width:0}
+.btn{font-family:inherit;font-size:14px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;color:var(--text)}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.sm{padding:4px 8px;font-size:13px}
+.btn.ghost{border:none;background:none;color:var(--sub)}
+.btn.big{width:100%;padding:14px;font-size:17px;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#f8f9fb;border-radius:16px;padding:5px 10px;font-size:14px}
+.chip b{margin-left:6px;color:var(--sub);font-weight:400}
+/* 出欠 */
+.att{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.att button{font-family:inherit;border:1px solid var(--line);border-radius:8px;background:#fff;padding:8px 2px;font-size:15px;line-height:1.2}
+.att button small{display:block;font-size:11px;color:var(--sub)}
+.att button.s1{background:#fff7e0;border-color:#e8c25a}
+.att button.s2{background:#f1f1f1;color:#999;text-decoration:line-through}
+.att button.s3{background:#e9f0ff;border-color:#8aa4e6}
+/* メニュー */
+.mi{display:flex;gap:6px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed var(--line)}
+.mi .no{width:22px;text-align:right;color:var(--sub);font-size:13px;padding-top:9px}
+.mi .body{flex:1;min-width:0}
+.mi .body .row input.min{width:64px;flex:none}
+.mi .ops{display:flex;flex-direction:column;gap:2px}
+.mi .ops button{font-size:12px;padding:2px 6px}
+.mi.rest input.name{color:var(--sub);background:#f6f6f6}
+/* シューティング */
+.sh{border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
+.sh .srow{display:grid;grid-template-columns:1fr 64px 10px 64px 64px 28px;gap:4px;align-items:center;margin-top:6px}
+.sh .srow .pct{font-weight:700;text-align:right;font-size:15px}
+.sh .srow span.sl{text-align:center;color:var(--sub)}
+.sh .head{display:grid;grid-template-columns:1fr 64px 10px 64px 64px 28px;gap:4px;font-size:11px;color:var(--sub);margin-top:6px}
+/* ラリー */
+.rhead{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.pl{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid transparent;border-radius:10px;padding:8px 10px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.pl.sel{border-color:var(--navy);background:#eef2ff}
+.pl .nm{width:52px;font-weight:700;font-size:17px;flex:none}
+.pl .seq{flex:1;display:flex;flex-wrap:wrap;gap:3px 6px;font-size:17px;min-height:24px;align-items:center}
+.pl .seq span{padding:0 2px;border-radius:4px}
+.pl .seq span.g{color:var(--ok)}
+.pl .seq span.b{color:var(--ng)}
+.pl .tot{font-size:11px;color:var(--sub);text-align:right;flex:none;width:64px;line-height:1.3}
+.pad{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);padding:8px 8px max(8px,env(safe-area-inset-bottom));box-shadow:0 -4px 12px rgba(0,0,0,.08)}
+.pad .who{font-size:13px;color:var(--sub);margin:0 2px 6px;display:flex;justify-content:space-between;align-items:center}
+.pad .who b{color:var(--navy);font-size:16px}
+.pad .keys{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;max-width:760px;margin:0 auto}
+.pad .keys button{font-family:inherit;border:1px solid var(--line);border-radius:9px;background:#f8f9fb;padding:8px 0 6px;font-size:19px;font-weight:700;line-height:1.1}
+.pad .keys button small{display:block;font-size:10px;white-space:nowrap;overflow:hidden;font-weight:400;color:var(--sub)}
+.pad .keys button.g{background:#eaf7f0;border-color:#9fd5b8;color:var(--ok)}
+.pad .keys button.b{background:#fdeeee;border-color:#eab0aa;color:var(--ng)}
+.pad .keys button:active{transform:scale(.95)}
+.pad .keys button:disabled{opacity:.35}
+/* 画像 */
+#preview{width:100%;border-radius:8px;border:1px solid var(--line);background:#fff}
+.note{font-size:13px;color:var(--sub);line-height:1.6}
+.hist a{display:flex;justify-content:space-between;padding:10px 4px;border-bottom:1px solid var(--line);color:var(--text);text-decoration:none}
+.toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:rgba(20,20,30,.88);color:#fff;padding:8px 14px;border-radius:20px;font-size:14px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+dialog{border:none;border-radius:14px;padding:16px;width:min(92vw,460px)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1>練習ノート</h1>
+    <span id="sync" class="sync">端末内</span>
+    <button class="iconbtn" id="btnSettings" aria-label="設定">設定</button>
+  </div>
+  <div class="pick">
+    <input type="date" id="pickDate">
+    <select id="pickPart" aria-label="何部目"><option value="1">1部</option><option value="2">2部</option><option value="3">3部</option></select>
+  </div>
+  <nav id="tabs">
+    <button data-tab="note" class="on">ノート</button>
+    <button data-tab="rally">ラリー</button>
+    <button data-tab="image">配信画像</button>
+    <button data-tab="hist">履歴</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ノート -->
+  <section id="tab-note">
+    <div class="card">
+      <h2>基本情報</h2>
+      <div class="row">
+        <div style="width:80px"><label class="f">No.</label><input type="number" id="fNo" inputmode="numeric"></div>
+        <div style="flex:1"><label class="f">開始</label><input type="time" id="fStart"></div>
+        <div style="flex:1"><label class="f">終了</label><input type="time" id="fEnd"></div>
+        <div style="width:80px"><label class="f">コート</label><input type="text" id="fCourt" placeholder="1面"></div>
+      </div>
+      <label class="f">テーマ・目標</label>
+      <textarea id="fTheme" placeholder="例:インカレに向けて、ハーフコートDFからのブレイク"></textarea>
+    </div>
+
+    <div class="card">
+      <h2><span class="grow">出欠</span><span id="attSum" class="note"></span></h2>
+      <div class="note" style="margin-bottom:6px">タップで「参加 → 別メニュー → 欠席 → 遅刻・早退」と切り替わります。</div>
+      <div class="att" id="att"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="grow">メニュー</span></h2>
+      <div id="menu"></div>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap">
+        <button class="btn pri" id="addMenu">+ メニュー</button>
+        <button class="btn" data-rest="2">休 2分</button>
+        <button class="btn" data-rest="5">休 5分</button>
+        <button class="btn" data-copy>前回と同じ「〃」</button>
+      </div>
+      <datalist id="dlMenu"></datalist>
+    </div>
+
+    <div class="card">
+      <h2><span class="grow">シューティング</span></h2>
+      <div id="shoot"></div>
+      <div class="row" style="flex-wrap:wrap;margin-top:4px">
+        <button class="btn sm" data-sh="タッチスリー|東,西">+ タッチスリー(東・西)</button>
+        <button class="btn sm" data-sh="コーナースリー|">+ コーナースリー</button>
+        <button class="btn sm" data-sh="ウィングスリー|">+ ウィングスリー</button>
+        <button class="btn sm" data-sh="フリースロー|">+ フリースロー</button>
+        <button class="btn sm" data-sh="|">+ その他</button>
+      </div>
+      <div class="note" style="margin-top:6px">「カウント」は、3本連続で入ったら+1、レイアップを落としたら−1のような、本数とは別の数え方を記入する欄です(なければ空欄)。</div>
+    </div>
+
+    <div class="card">
+      <h2>セット・確認事項</h2>
+      <div class="chips" id="sets"></div>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="setIn" list="dlSet" placeholder="例:#8、ハイピック、フレックス">
+        <button class="btn pri" id="addSet">追加</button>
+      </div>
+      <datalist id="dlSet"></datalist>
+    </div>
+
+    <div class="card">
+      <h2>振り返り</h2>
+      <label class="f">監督・コーチのコメント/良かった点・課題</label>
+      <textarea id="fReview"></textarea>
+      <label class="f">連絡事項・メモ</label>
+      <textarea id="fMemo"></textarea>
+    </div>
+  </section>
+
+  <!-- ラリー -->
+  <section id="tab-rally" class="hidden">
+    <div class="rhead">
+      <div class="note" style="flex:1">選手をタップしてから、下のボタンで記録します。選んでいる選手の記号をタップすると、その記録を取り消せます。</div>
+      <button class="btn sm" id="undo">↶ 1つ戻す</button>
+    </div>
+    <div id="plist"></div>
+    <div class="row" style="margin-top:8px">
+      <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="showAbsent"> 欠席者も表示</label>
+    </div>
+  </section>
+
+  <!-- 画像 -->
+  <section id="tab-image" class="hidden">
+    <div class="card">
+      <button class="btn pri big" id="share">LINEで送る</button>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="dl" style="flex:1">画像を保存</button>
+        <button class="btn" id="redraw" style="flex:1">最新の内容で作り直す</button>
+      </div>
+      <p class="note" id="shareNote">「LINEで送る」で共有メニューが開きます。LINEを選び、部のグループに送ってください。</p>
+    </div>
+    <img id="preview" alt="配信用画像">
+  </section>
+
+  <!-- 履歴 -->
+  <section id="tab-hist" class="hidden">
+    <div class="card">
+      <h2>これまでの練習</h2>
+      <div class="hist" id="hist"></div>
+    </div>
+    <div class="card">
+      <h2>シューティングの推移</h2>
+      <div id="trend" class="note"></div>
+    </div>
+  </section>
+</main>
+
+<div class="pad hidden" id="pad">
+  <div class="who"><span>記録する選手:<b id="selName">未選択</b></span><span id="lastAct"></span></div>
+  <div class="keys" id="keys"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<dialog id="dlgSettings">
+  <h3 style="margin:0 0 8px">設定</h3>
+  <label class="f">記録者の名前(画像に表示)</label>
+  <input type="text" id="sBy" placeholder="例:ハル">
+  <label class="f">保存先URL(Apps ScriptのウェブアプリURL)</label>
+  <input type="text" id="sApi" placeholder="https://script.google.com/macros/s/.../exec">
+  <label class="f">PIN</label>
+  <input type="text" id="sPin" inputmode="numeric">
+  <p class="note">保存先URLが空の場合は、この端末の中だけに保存されます(2人で同時入力するには保存先URLが必要です)。</p>
+  <div class="row" style="justify-content:flex-end;margin-top:10px">
+    <button class="btn" id="sCancel">閉じる</button>
+    <button class="btn pri" id="sSave">保存</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+/* ====== 設定 ====== */
+const TEAM = "福岡大学女子バスケットボール部";
+// ホワイトボードの書き方に合わせた記号
+const CODES = [
+  {c:"M2", sym:"×",  lab:"2P成功", cls:"g"},
+  {c:"X2", sym:"/",  lab:"2P失敗", cls:"b"},
+  {c:"M3", sym:"⊗",  lab:"3P成功", cls:"g"},
+  {c:"X3", sym:"⊘",  lab:"3P失敗", cls:"b"},
+  {c:"R",  sym:"R",  lab:"リバウンド", key:"リバウンド", cls:""},
+  {c:"OR", sym:"Ⓡ",  lab:"Oリバウンド", key:"Oリバ", cls:""},
+  {c:"A",  sym:"A",  lab:"アシスト", cls:""},
+  {c:"St", sym:"St", lab:"スティール", key:"スティール", cls:""},
+  {c:"Bl", sym:"Bl", lab:"ブロック", cls:""},
+  {c:"Df", sym:"Df", lab:"Df", cls:""},
+  {c:"To", sym:"To", lab:"ターンオーバー", key:"TO", cls:"b"},
+];
+const CODE = Object.fromEntries(CODES.map(x=>[x.c,x]));
+const DEFAULT_PLAYERS = ["カイ","レイ","マイ","サク","サン","トア","コウ","ライ","セル","ノア","ココ","リノ","ラキ","ツキ","チイ","ユウ","ネオ","ヒマ","リン","ユラ"];
+const DEFAULT_MENU = ["ミートシュート","スロットドライブ","DHO〜ドライブ","折り返し3対2","コーナースリー","4メンスキップパス","アーク内4対3","ウィングスリー","フリースロー","タッチスリー","4対3〜4対4 ラリー","4対4 ラリー","DF〜ブレイク 4on4","DF〜ブレイク 5on5","振り返り"];
+const DEFAULT_SETS = ["#8","ハイピック","パッシング4.5インサイド","オールアウト","フレックス"];
+const ATT = ["参加","別メニュー","欠席","遅刻・早退"];
+const WD = ["日","月","火","水","木","金","土"];
+
+/* ====== 保存(端末内) ====== */
+const LS = {
+  get(k,d){ try{ const v=localStorage.getItem("pn_"+k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k,v){ try{ localStorage.setItem("pn_"+k, JSON.stringify(v)); }catch(e){} }
+};
+const MEM = {};  // localStorageが使えない環境用
+function lsGet(k,d){ const v=LS.get(k,undefined); return v===undefined ? (k in MEM?MEM[k]:d) : v; }
+function lsSet(k,v){ MEM[k]=v; LS.set(k,v); }
+
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("on"),1600); }
+
+/* ====== 状態 ====== */
+let cfg = lsGet("cfg", {api:"", pin:"", by:""});
+// #api=...&pin=... 付きのリンクで開いたら設定を取り込む
+(function(){
+  if(location.hash.length>1){
+    const p=new URLSearchParams(location.hash.slice(1));
+    if(p.get("api")){ cfg.api=p.get("api"); cfg.pin=p.get("pin")||""; lsSet("cfg",cfg);
+      try{ history.replaceState(null,"",location.pathname+location.search);}catch(e){} }
+  }
+})();
+let players = lsGet("players", DEFAULT_PLAYERS);
+let practiceList = lsGet("list", []);   // [{id,no,date}]
+let queue = lsGet("queue", []);
+let curId = null, note = null, events = [], selPlayer = null, tab = "note";
+
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function makeId(date,part){ return part==="1"?date:date+"-"+part; }
+function idDate(id){ return id.slice(0,10); }
+function fmtDate(id){ const d=new Date(idDate(id)+"T00:00:00"); const p=id.length>10?"(第"+id.slice(11)+"部)":""; return (d.getMonth()+1)+"/"+d.getDate()+"("+WD[d.getDay()]+")"+p; }
+
+function emptyNote(id){
+  const nos = practiceList.map(p=>+p.no||0).concat(allLocalNotes().map(n=>+n.no||0));
+  return {id, no: nos.length?Math.max(...nos)+1:"", date:idDate(id), start:"17:00", end:"19:00", court:"1面",
+    theme:"", attendance:{}, menu:[], shooting:[], sets:[], review:"", memo:"", updatedAt:0, by:""};
+}
+function allLocalNotes(){ return lsGet("noteIds",[]).map(i=>lsGet("note_"+i,null)).filter(Boolean); }
+function cacheNote(){ lsSet("note_"+curId, note); const ids=lsGet("noteIds",[]); if(!ids.includes(curId)){ids.push(curId); lsSet("noteIds",ids);} }
+function cacheEvents(){ lsSet("ev_"+curId, events); }
+
+/* ====== 同期 ====== */
+function setSync(state,txt){ const s=$("#sync"); s.className="sync "+(state||""); s.textContent=txt; }
+function updSyncLabel(){
+  if(!cfg.api){ setSync("","端末内のみ"); return; }
+  if(queue.length) setSync("wait","未送信 "+queue.length); else setSync("","保存済み");
+}
+async function api(body){
+  body.pin = cfg.pin;
+  const r = await fetch(cfg.api,{method:"POST",body:JSON.stringify(body)});
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.error||"error");
+  return j;
+}
+function enqueue(op){
+  if(op.op==="saveNote") queue = queue.filter(q=>!(q.op==="saveNote"&&q.note.id===op.note.id));
+  queue.push(op); lsSet("queue",queue); updSyncLabel(); scheduleFlush();
+}
+let flushT=null, flushing=false; const inflight=new Set();
+function scheduleFlush(ms){ clearTimeout(flushT); flushT=setTimeout(flush, ms??1200); }
+async function flush(){
+  if(!cfg.api){ queue=[]; lsSet("queue",queue); updSyncLabel(); return; }
+  if(flushing||!queue.length) return;
+  flushing=true;
+  const ops = queue.slice(0,200);
+  ops.forEach(o=>inflight.add(o));
+  try{
+    await api({action:"batch", ops});
+    queue = queue.filter(q=>!inflight.has(q)); lsSet("queue",queue);
+    updSyncLabel();
+  }catch(e){
+    setSync("err", /PIN/.test(e.message)?"PINエラー":"未送信 "+queue.length+"(電波待ち)");
+    scheduleFlush(8000);
+  }finally{ inflight.clear(); flushing=false; if(queue.length) scheduleFlush(500); }
+}
+async function pull(silent){
+  if(!cfg.api) return;
+  if(queue.length){ await flush(); if(queue.length) return; }
+  try{
+    const j = await api({action:"get", id:curId});
+    if(j.players && j.players.length){ players=j.players; lsSet("players",players); }
+    if(j.list){ practiceList=j.list; lsSet("list",practiceList); }
+    if(j.menuNames) lsSet("menuNames", j.menuNames);
+    if(j.setNames) lsSet("setNames", j.setNames);
+    let changed=false;
+    if(j.note && (+j.note.updatedAt||0) > (+note.updatedAt||0)){ note=j.note; cacheNote(); changed=true; }
+    const pendingDel = new Set(queue.filter(q=>q.op==="delEvent").map(q=>q.eid));
+    const pendingAdd = queue.filter(q=>q.op==="addEvent"&&q.ev.id===curId).map(q=>q.ev);
+    const map = new Map();
+    (j.events||[]).forEach(e=>map.set(e.eid,e));
+    pendingAdd.forEach(e=>map.set(e.eid,e));
+    const nev = [...map.values()].filter(e=>!pendingDel.has(e.eid)).sort((a,b)=>a.ts-b.ts);
+    if(JSON.stringify(nev)!==JSON.stringify(events)){ events=nev; cacheEvents(); changed=true; }
+    updSyncLabel();
+    if(changed) renderAll(true);
+  }catch(e){
+    if(!silent) setSync("err", /PIN/.test(e.message)?"PINエラー":"接続できません");
+  }
+}
+
+/* ====== 練習の切り替え ====== */
+function openPractice(id){
+  curId=id;
+  note = lsGet("note_"+id,null) || emptyNote(id);
+  events = lsGet("ev_"+id,[]);
+  $("#pickDate").value = idDate(id);
+  $("#pickPart").value = id.length>10? id.slice(11) : "1";
+  lsSet("cur", id);
+  renderAll(false);
+  pull();
+}
+function touch(){ note.updatedAt=Date.now(); note.by=cfg.by||""; cacheNote(); enqueue({op:"saveNote", note:JSON.parse(JSON.stringify(note))}); }
+
+/* ====== 描画:ノート ====== */
+function renderAll(fromPull){
+  const ae=document.activeElement;
+  const editing = fromPull && ae && ae.closest && ae.closest("#tab-note") && /INPUT|TEXTAREA|SELECT/.test(ae.tagName);
+  if(!editing) renderNote();
+  renderRally();
+  if(tab==="image") drawImage();
+  if(tab==="hist") renderHist();
+}
+function renderNote(){
+  $("#fNo").value=note.no??""; $("#fStart").value=note.start||""; $("#fEnd").value=note.end||"";
+  $("#fCourt").value=note.court||""; $("#fTheme").value=note.theme||"";
+  $("#fReview").value=note.review||""; $("#fMemo").value=note.memo||"";
+  renderAtt(); renderMenu(); renderShoot(); renderSets();
+  const mn = [...new Set(lsGet("menuNames",[]).concat(DEFAULT_MENU))];
+  $("#dlMenu").innerHTML = mn.map(m=>`<option value="${esc(m)}">`).join("");
+  const sn = [...new Set(lsGet("setNames",[]).concat(DEFAULT_SETS))];
+  $("#dlSet").innerHTML = sn.map(m=>`<option value="${esc(m)}">`).join("");
+}
+function attOf(p){ return note.attendance[p]||"参加"; }
+function renderAtt(){
+  const cls={"参加":"","別メニュー":"s1","欠席":"s2","遅刻・早退":"s3"};
+  $("#att").innerHTML = players.map(p=>{ const s=attOf(p);
+    return `<button data-p="${esc(p)}" class="${cls[s]}">${esc(p)}<small>${s}</small></button>`; }).join("");
+  const c = {}; players.forEach(p=>{const s=attOf(p); c[s]=(c[s]||0)+1;});
+  $("#attSum").textContent = ATT.filter(a=>c[a]).map(a=>a+" "+c[a]).join(" / ");
+}
+function renderMenu(){
+  $("#menu").innerHTML = note.menu.map((m,i)=>{
+    const rest=/^休/.test(m.name);
+    return `<div class="mi ${rest?"rest":""}" data-i="${i}">
+      <div class="no">${i+1}</div>
+      <div class="body">
+        <div class="row"><input type="text" class="name" list="dlMenu" value="${esc(m.name)}" placeholder="メニュー名">
+        <input type="number" class="min" inputmode="numeric" value="${esc(m.min??"")}" placeholder="分"></div>
+        ${rest?"":`<input type="text" class="mnote" value="${esc(m.note||"")}" placeholder="条件・メモ(例:※マンツー)" style="margin-top:4px;font-size:14px">`}
+      </div>
+      <div class="ops"><button class="btn sm" data-mv="-1">▲</button><button class="btn sm" data-mv="1">▼</button><button class="btn sm" data-del>✕</button></div>
+    </div>`;}).join("") || `<div class="note">まだメニューがありません。</div>`;
+}
+function pct(m,a){ m=+m; a=+a; return a>0? (Math.round(m/a*1000)/10).toFixed(1)+"%" : "—"; }
+function renderShoot(){
+  $("#shoot").innerHTML = note.shooting.map((s,i)=>`
+    <div class="sh" data-i="${i}">
+      <div class="row"><input type="text" class="sname" list="dlMenu" value="${esc(s.name)}" placeholder="種目名">
+        <input type="text" class="scount" value="${esc(s.count||"")}" placeholder="カウント" style="width:90px;flex:none">
+        <button class="btn sm ghost" data-sdel>✕</button></div>
+      <div class="head"><span>区分</span><span>成功</span><span></span><span>試投</span><span style="text-align:right">確率</span><span></span></div>
+      ${s.rows.map((r,j)=>`<div class="srow" data-j="${j}">
+        <input type="text" class="rl" value="${esc(r.label)}" placeholder="全体">
+        <input type="number" class="rm" inputmode="numeric" value="${esc(r.made??"")}">
+        <span class="sl">/</span>
+        <input type="number" class="ra" inputmode="numeric" value="${esc(r.att??"")}">
+        <span class="pct">${pct(r.made,r.att)}</span>
+        <button class="btn sm ghost" data-rdel>✕</button></div>`).join("")}
+      <button class="btn sm" data-radd style="margin-top:6px">+ 区分を追加(東・西、選手名など)</button>
+    </div>`).join("");
+}
+function renderSets(){
+  $("#sets").innerHTML = note.sets.map((s,i)=>`<span class="chip">${esc(s)}<b data-setdel="${i}">✕</b></span>`).join("") || `<span class="note">まだありません。</span>`;
+}
+
+/* ====== ノートの入力イベント ====== */
+function bindNote(){
+  const simple = {fNo:"no",fStart:"start",fEnd:"end",fCourt:"court",fTheme:"theme",fReview:"review",fMemo:"memo"};
+  Object.entries(simple).forEach(([el,k])=>$("#"+el).addEventListener("input",e=>{ note[k]=e.target.value; touch(); }));
+  $("#att").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
+    const p=b.dataset.p; const s=ATT[(ATT.indexOf(attOf(p))+1)%ATT.length];
+    if(s==="参加") delete note.attendance[p]; else note.attendance[p]=s; touch(); renderAtt(); renderRally(); });
+  $("#addMenu").onclick=()=>{ note.menu.push({name:"",min:"",note:""}); touch(); renderMenu();
+    const ins=document.querySelectorAll("#menu input.name"); ins[ins.length-1]?.focus(); };
+  document.querySelectorAll("[data-rest]").forEach(b=>b.onclick=()=>{ note.menu.push({name:"休",min:b.dataset.rest,note:""}); touch(); renderMenu(); });
+  document.querySelector("[data-copy]").onclick=()=>{
+    const last=[...note.menu].reverse().find(m=>!/^休/.test(m.name));
+    if(!last){ toast("コピーするメニューがありません"); return; }
+    note.menu.push({name:last.name,min:last.min,note:last.note}); touch(); renderMenu(); };
+  $("#menu").addEventListener("input",e=>{ const it=e.target.closest(".mi"); if(!it) return; const m=note.menu[+it.dataset.i];
+    if(e.target.classList.contains("name")) m.name=e.target.value;
+    if(e.target.classList.contains("min")) m.min=e.target.value;
+    if(e.target.classList.contains("mnote")) m.note=e.target.value; touch(); });
+  $("#menu").addEventListener("change",e=>{ if(!e.target.classList.contains("name")) return;
+    const it=e.target.closest(".mi"); const rest=/^休/.test(e.target.value);
+    if(rest!==it.classList.contains("rest")){ const ae=document.activeElement; const cls=ae&&ae.className; const idx=it.dataset.i;
+      renderMenu(); const again=document.querySelector(`#menu .mi[data-i="${idx}"] .${cls}`); if(again) again.focus(); } });
+  $("#menu").addEventListener("click",e=>{ const it=e.target.closest(".mi"); if(!it) return; const i=+it.dataset.i;
+    if(e.target.dataset.mv){ const j=i+(+e.target.dataset.mv); if(j<0||j>=note.menu.length) return;
+      [note.menu[i],note.menu[j]]=[note.menu[j],note.menu[i]]; touch(); renderMenu(); }
+    if(e.target.hasAttribute("data-del")){ note.menu.splice(i,1); touch(); renderMenu(); } });
+  document.querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{
+    const [name,rows]=b.dataset.sh.split("|");
+    note.shooting.push({name, count:"", rows:(rows?rows.split(","):[""]).map(l=>({label:l,made:"",att:""}))});
+    touch(); renderShoot(); });
+  $("#shoot").addEventListener("input",e=>{ const box=e.target.closest(".sh"); if(!box) return; const s=note.shooting[+box.dataset.i];
+    const t=e.target;
+    if(t.classList.contains("sname")) s.name=t.value;
+    if(t.classList.contains("scount")) s.count=t.value;
+    const row=t.closest(".srow");
+    if(row){ const r=s.rows[+row.dataset.j];
+      if(t.classList.contains("rl")) r.label=t.value;
+      if(t.classList.contains("rm")) r.made=t.value;
+      if(t.classList.contains("ra")) r.att=t.value;
+      row.querySelector(".pct").textContent=pct(r.made,r.att); }
+    touch(); });
+  $("#shoot").addEventListener("click",e=>{ const box=e.target.closest(".sh"); if(!box) return; const i=+box.dataset.i; const s=note.shooting[i];
+    if(e.target.hasAttribute("data-sdel")){ if(confirm("「"+(s.name||"この種目")+"」を削除しますか?")){ note.shooting.splice(i,1); touch(); renderShoot(); } }
+    if(e.target.hasAttribute("data-radd")){ s.rows.push({label:"",made:"",att:""}); touch(); renderShoot(); }
+    if(e.target.hasAttribute("data-rdel")){ const j=+e.target.closest(".srow").dataset.j; s.rows.splice(j,1); if(!s.rows.length) s.rows.push({label:"",made:"",att:""}); touch(); renderShoot(); } });
+  const addSet=()=>{ const v=$("#setIn").value.trim(); if(!v) return; note.sets.push(v); $("#setIn").value=""; touch(); renderSets(); };
+  $("#addSet").onclick=addSet;
+  $("#setIn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addSet(); } });
+  $("#sets").addEventListener("click",e=>{ const i=e.target.dataset.setdel; if(i==null) return; note.sets.splice(+i,1); touch(); renderSets(); });
+}
+
+/* ====== ラリー ====== */
+function tally(list){
+  const t={}; CODES.forEach(c=>t[c.c]=0); list.forEach(e=>{ if(t[e.code]!=null) t[e.code]++; }); return t;
+}
+function renderRally(){
+  const showAbs=$("#showAbsent").checked;
+  const byP={}; events.forEach(e=>{ (byP[e.player]=byP[e.player]||[]).push(e); });
+  const list = players.filter(p=> showAbs || attOf(p)!=="欠席" || byP[p]);
+  $("#plist").innerHTML = list.map(p=>{
+    const ev=byP[p]||[]; const t=tally(ev);
+    const fgm=t.M2+t.M3, fga=fgm+t.X2+t.X3;
+    return `<div class="pl ${selPlayer===p?"sel":""}" data-p="${esc(p)}">
+      <div class="nm">${esc(p)}</div>
+      <div class="seq">${ev.map(e=>`<span class="${CODE[e.code]?.cls||""}" data-eid="${e.eid}">${esc(CODE[e.code]?.sym||e.code)}</span>`).join("")}</div>
+      <div class="tot">${fga?`FG ${fgm}/${fga}`:""}${t.To?`<br>To ${t.To}`:""}</div>
+    </div>`; }).join("");
+  $("#selName").textContent = selPlayer||"未選択";
+  document.querySelectorAll("#keys button").forEach(b=>b.disabled=!selPlayer);
+}
+function bindRally(){
+  $("#keys").innerHTML = CODES.map(c=>`<button class="${c.cls}" data-c="${c.c}">${c.sym}<small>${c.key||c.lab}</small></button>`).join("")
+    + `<button data-c="__desel" style="font-size:13px">選手<small>解除</small></button>`;
+  $("#plist").addEventListener("click",e=>{
+    const sp=e.target.closest("span[data-eid]");
+    const plRow=e.target.closest(".pl");
+    if(sp && plRow && plRow.dataset.p===selPlayer){ const ev=events.find(x=>x.eid===sp.dataset.eid);
+      if(ev && confirm(ev.player+" の「"+CODE[ev.code].lab+"」を取り消しますか?")) removeEvent(ev.eid);
+      return; }
+    const pl=e.target.closest(".pl"); if(!pl) return;
+    selPlayer = selPlayer===pl.dataset.p? null : pl.dataset.p; renderRally(); });
+  $("#keys").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b||b.disabled) return;
+    if(b.dataset.c==="__desel"){ selPlayer=null; renderRally(); return; }
+    if(!selPlayer) return;
+    const ev={eid:uid(), id:curId, player:selPlayer, code:b.dataset.c, ts:Date.now(), by:cfg.by||""};
+    events.push(ev); cacheEvents(); enqueue({op:"addEvent", ev});
+    $("#lastAct").textContent = selPlayer+" "+CODE[ev.code].sym+"("+CODE[ev.code].lab+")";
+    if(navigator.vibrate) try{navigator.vibrate(15);}catch(_){}
+    renderRally(); });
+  $("#undo").onclick=()=>{ const mine=[...events].reverse().find(e=>(e.by||"")===(cfg.by||"")) || events[events.length-1];
+    if(!mine){ toast("取り消す記録がありません"); return; }
+    removeEvent(mine.eid); toast(mine.player+" の「"+CODE[mine.code].lab+"」を取り消しました"); };
+  $("#showAbsent").onchange=renderRally;
+}
+function removeEvent(eid){
+  events = events.filter(e=>e.eid!==eid); cacheEvents();
+  const idx = queue.findIndex(q=>q.op==="addEvent"&&q.ev.eid===eid&&!inflight.has(q));
+  if(idx>=0){ queue.splice(idx,1); lsSet("queue",queue); updSyncLabel(); }
+  else enqueue({op:"delEvent", eid, id:curId});
+  renderRally();
+}
+
+/* ====== 配信画像 ====== */
+const FONT = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP",sans-serif';
+function wrapLines(ctx,text,maxW){
+  const out=[]; String(text||"").split("\n").forEach(par=>{
+    let line=""; for(const ch of par){ if(ctx.measureText(line+ch).width>maxW && line){ out.push(line); line=ch; } else line+=ch; }
+    out.push(line); }); return out;
+}
+function paint(cv){
+  const W=1080, P=44; const ctx=cv.getContext("2d");
+  const f=(w,s)=>ctx.font=`${w} ${s}px ${FONT}`;
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,cv.width,cv.height);
+  // ヘッダー
+  ctx.fillStyle="#16244f"; ctx.fillRect(0,0,W,170);
+  ctx.fillStyle="#d4a017"; ctx.fillRect(0,170,W,6);
+  ctx.fillStyle="#c9d1ea"; f(500,24); ctx.fillText(TEAM,P,48);
+  ctx.fillStyle="#fff"; f(800,52); ctx.fillText("練習ノート"+(note.no?"  No."+note.no:""),P,112);
+  const d=new Date(note.date+"T00:00:00");
+  f(600,30); const dt=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${WD[d.getDay()]})${curId.length>10?" 第"+curId.slice(11)+"部":""}`;
+  ctx.fillText(dt,P,154);
+  f(500,28); ctx.textAlign="right";
+  ctx.fillText([ (note.start||"")+(note.end?"〜"+note.end:""), note.court||"" ].filter(Boolean).join("  "), W-P,154);
+  ctx.textAlign="left";
+  let y=210;
+  const heading=(t,x,yy,w)=>{ ctx.fillStyle="#16244f"; f(800,28); ctx.fillText(t,x,yy); ctx.fillStyle="#d4a017"; ctx.fillRect(x,yy+10,w,3); return yy+46; };
+  // テーマ
+  if(note.theme){
+    y=heading("テーマ・目標",P,y,W-2*P);
+    ctx.fillStyle="#1b1f2a"; f(600,30);
+    wrapLines(ctx,note.theme,W-2*P).forEach(l=>{ ctx.fillText(l,P,y); y+=42; }); y+=14;
+  }
+  // 2段組
+  const LW=560, RX=P+LW+36, RW=W-P-RX;
+  let ly=heading("メニュー",P,y,LW), ry=heading("シューティング",RX,y,RW);
+  let n=0;
+  note.menu.forEach(m=>{
+    const rest=/^休/.test(m.name);
+    if(rest){ ctx.fillStyle="#9aa0ab"; f(400,24); ctx.fillText("— 休憩 "+(m.min?m.min+"分":"")+" —",P+44,ly); ly+=34; return; }
+    n++; ctx.fillStyle="#6b7280"; f(600,24); ctx.fillText(String(n),P,ly);
+    ctx.fillStyle="#1b1f2a"; f(600,28);
+    const txt=(m.name||"")+(m.min?`(${m.min}分)`:"");
+    wrapLines(ctx,txt,LW-44).forEach(l=>{ ctx.fillText(l,P+44,ly); ly+=38; });
+    if(m.note){ ctx.fillStyle="#4b5563"; f(400,23); wrapLines(ctx,m.note,LW-60).forEach(l=>{ ctx.fillText(l,P+60,ly-4); ly+=31; }); }
+    ly+=4;
+  });
+  if(!note.menu.length){ ctx.fillStyle="#9aa0ab"; f(400,24); ctx.fillText("(記録なし)",P,ly); ly+=34; }
+  note.shooting.forEach(s=>{
+    ctx.fillStyle="#1b1f2a"; f(700,28);
+    wrapLines(ctx,s.name||"シューティング",RW).forEach(l=>{ ctx.fillText(l,RX,ry); ry+=38; });
+    s.rows.forEach(r=>{
+      if(r.made===""&&r.att==="") return;
+      f(500,26); ctx.fillStyle="#374151";
+      const lab=r.label?r.label+":":"";
+      ctx.fillText(`${lab}${r.made}/${r.att}本`,RX+16,ry);
+      ctx.textAlign="right"; f(800,28); ctx.fillStyle="#16244f"; ctx.fillText(pct(r.made,r.att),RX+RW,ry); ctx.textAlign="left";
+      ry+=36; });
+    if(s.count){ f(400,23); ctx.fillStyle="#6b7280"; ctx.fillText("カウント:"+s.count,RX+16,ry); ry+=32; }
+    ry+=10;
+  });
+  if(!note.shooting.length){ ctx.fillStyle="#9aa0ab"; f(400,24); ctx.fillText("(記録なし)",RX,ry); ry+=34; }
+  if(note.sets.length){
+    ry+=6; ry=heading("セット・確認事項",RX,ry,RW);
+    note.sets.forEach(s=>{ ctx.fillStyle="#1b1f2a"; f(600,26); wrapLines(ctx,"☆ "+s,RW).forEach(l=>{ctx.fillText(l,RX,ry); ry+=36;}); });
+  }
+  y=Math.max(ly,ry)+16;
+  // ラリー集計
+  if(events.length){
+    y=heading("ラリー 個人記録",P,y,W-2*P);
+    const cols=[["選手",0],["2P",130],["3P",250],["FG%",370],["R(OR)",485],["A",615],["St",695],["Bl",775],["Df",855],["To",935]];
+    ctx.fillStyle="#6b7280"; f(600,22); cols.forEach(([t,x])=>ctx.fillText(t,P+x,y)); y+=12;
+    ctx.fillStyle="#dfe2ea"; ctx.fillRect(P,y,W-2*P,2); y+=34;
+    const byP={}; events.forEach(e=>(byP[e.player]=byP[e.player]||[]).push(e));
+    const order=players.filter(p=>byP[p]).concat(Object.keys(byP).filter(p=>!players.includes(p)));
+    const all=tally(events);
+    const rowOf=(name,t,bold)=>{
+      const fgm=t.M2+t.M3, fga=fgm+t.X2+t.X3;
+      const v=[name, `${t.M2}/${t.M2+t.X2}`, `${t.M3}/${t.M3+t.X3}`, fga?Math.round(fgm/fga*100)+"%":"—",
+        `${t.R+t.OR}(${t.OR})`, t.A, t.St, t.Bl, t.Df, t.To];
+      f(bold?800:500,25);
+      v.forEach((s,i)=>{ ctx.fillStyle = i===9&&t.To? "#c0392b" : "#1b1f2a"; ctx.fillText(String(s),P+cols[i][1],y); });
+      y+=36;
+    };
+    order.forEach((p,i)=>{ if(i%2===0){ ctx.fillStyle="#f5f6f9"; ctx.fillRect(P-8,y-27,W-2*P+16,36);} rowOf(p,tally(byP[p]),false); });
+    ctx.fillStyle="#16244f"; ctx.fillRect(P,y-24,W-2*P,2); y+=6;
+    rowOf("合計",all,true);
+    ctx.fillStyle="#9aa0ab"; f(400,20);
+    ctx.fillText("R(OR)=リバウンド合計(うちオフェンスリバウンド)",P,y); y+=56;
+  }
+  // 出欠
+  const groups={}; players.forEach(p=>{ const s=attOf(p); (groups[s]=groups[s]||[]).push(p); });
+  y=heading("出欠",P,y,W-2*P);
+  ctx.fillStyle="#1b1f2a"; f(500,26);
+  const attTxt = `参加 ${(groups["参加"]||[]).length}名` + ["別メニュー","遅刻・早退","欠席"].filter(k=>groups[k]).map(k=>` / ${k}:${groups[k].join("・")}`).join("");
+  wrapLines(ctx,attTxt,W-2*P).forEach(l=>{ ctx.fillText(l,P,y); y+=36; }); y+=10;
+  // 振り返り・連絡
+  [["振り返り",note.review],["連絡事項",note.memo]].forEach(([h,t])=>{
+    if(!t) return; y=heading(h,P,y,W-2*P); ctx.fillStyle="#1b1f2a"; f(500,27);
+    wrapLines(ctx,t,W-2*P).forEach(l=>{ ctx.fillText(l,P,y); y+=38; }); y+=10; });
+  // フッター
+  y+=10; ctx.fillStyle="#dfe2ea"; ctx.fillRect(P,y,W-2*P,2); y+=34;
+  ctx.fillStyle="#9aa0ab"; f(400,20);
+  ctx.fillText("記録:"+[note.by,cfg.by].filter((v,i,a)=>v&&a.indexOf(v)===i).join("・"),P,y);
+  ctx.textAlign="right"; const now=new Date();
+  ctx.fillText(`作成 ${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`,W-P,y);
+  ctx.textAlign="left";
+  return y+30;
+}
+let lastBlob=null;
+function drawImage(){
+  const tmp=document.createElement("canvas"); tmp.width=1080; tmp.height=8000;
+  const h=paint(tmp);
+  const cv=document.createElement("canvas"); cv.width=1080; cv.height=Math.max(h,800);
+  paint(cv);
+  $("#preview").src=cv.toDataURL("image/png");
+  cv.toBlob(b=>{ lastBlob=b; },"image/png");
+}
+function fileName(){ return "練習ノート_"+curId+".png"; }
+async function shareImage(){
+  if(!lastBlob){ drawImage(); await new Promise(r=>setTimeout(r,300)); }
+  const file=new File([lastBlob],fileName(),{type:"image/png"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:"練習ノート "+fmtDate(curId)}); }catch(e){}
+  } else {
+    downloadImage();
+    $("#shareNote").textContent="この端末では共有メニューが使えないため、画像を保存しました。LINEのトークで写真として送ってください(上の画像を長押しして保存することもできます)。";
+  }
+}
+function downloadImage(){
+  if(!lastBlob) return;
+  const a=document.createElement("a"); a.href=URL.createObjectURL(lastBlob); a.download=fileName(); document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ====== 履歴 ====== */
+function renderHist(){
+  const local = allLocalNotes().map(n=>({id:n.id,no:n.no}));
+  const m=new Map(); practiceList.concat(local).forEach(p=>m.set(p.id,{...(m.get(p.id)||{}),...p}));
+  const list=[...m.values()].sort((a,b)=>b.id.localeCompare(a.id));
+  $("#hist").innerHTML = list.map(p=>`<a href="#" data-id="${p.id}"><span>${fmtDate(p.id)}</span><span class="note">${p.no?"No."+p.no:""}</span></a>`).join("") || `<div class="note">まだ記録がありません。</div>`;
+  // 端末内にあるノートからシューティングの推移
+  const rows=[];
+  allLocalNotes().sort((a,b)=>a.id.localeCompare(b.id)).forEach(n=>n.shooting.forEach(s=>{
+    let mm=0,aa=0; s.rows.forEach(r=>{ mm+=+r.made||0; aa+=+r.att||0; });
+    if(aa) rows.push({d:fmtDate(n.id), name:s.name, m:mm, a:aa}); }));
+  const byName={}; rows.forEach(r=>(byName[r.name]=byName[r.name]||[]).push(r));
+  $("#trend").innerHTML = Object.keys(byName).length ? Object.entries(byName).map(([k,v])=>
+    `<div style="margin-bottom:8px"><b style="color:#16244f">${esc(k)}</b><br>${v.slice(-8).map(r=>`${r.d} ${r.m}/${r.a}(${pct(r.m,r.a)})`).join("<br>")}</div>`).join("")
+    : "シューティングの記録がたまると、ここに種目ごとの推移が出ます(全期間の推移はスプレッドシートの「シューティング」シートで見られます)。";
+}
+
+/* ====== 起動 ====== */
+function setTab(t){
+  tab=t; document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  ["note","rally","image","hist"].forEach(k=>$("#tab-"+k).classList.toggle("hidden",k!==t));
+  $("#pad").classList.toggle("hidden",t!=="rally");
+  if(t==="image") drawImage();
+  if(t==="hist") renderHist();
+  if(t==="rally") renderRally();
+  window.scrollTo(0,0);
+}
+function init(){
+  bindNote(); bindRally();
+  $("#tabs").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) setTab(b.dataset.tab); });
+  const onPick=()=>{ if($("#pickDate").value) openPractice(makeId($("#pickDate").value,$("#pickPart").value)); };
+  $("#pickDate").addEventListener("change",onPick); $("#pickPart").addEventListener("change",onPick);
+  $("#hist").addEventListener("click",e=>{ const a=e.target.closest("a"); if(!a) return; e.preventDefault(); openPractice(a.dataset.id); setTab("note"); });
+  $("#share").onclick=shareImage; $("#dl").onclick=()=>{ drawImage(); setTimeout(downloadImage,300); }; $("#redraw").onclick=drawImage;
+  $("#btnSettings").onclick=()=>{ $("#sBy").value=cfg.by||""; $("#sApi").value=cfg.api||""; $("#sPin").value=cfg.pin||""; $("#dlgSettings").showModal(); };
+  $("#sCancel").onclick=()=>$("#dlgSettings").close();
+  $("#sSave").onclick=async()=>{ cfg={by:$("#sBy").value.trim(), api:$("#sApi").value.trim(), pin:$("#sPin").value.trim()};
+    lsSet("cfg",cfg); $("#dlgSettings").close(); updSyncLabel();
+    if(cfg.api){ toast("接続を確認しています…"); await pull(); if(!$("#sync").classList.contains("err")) toast("接続しました"); } };
+  window.addEventListener("online",()=>flush());
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) pull(true); });
+  setInterval(()=>{ if(!document.hidden) pull(true); }, 10000);
+  const cur=lsGet("cur",null);
+  openPractice(cur && idDate(cur)===todayStr() ? cur : todayStr());
+  updSyncLabel(); if(queue.length) scheduleFlush(300);
+  if(!cfg.by) setTimeout(()=>$("#btnSettings").click(),400);
+}
+init();
+</script>
+</body>
+</html>
