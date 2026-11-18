@@ -333,7 +333,10 @@ async function api(body){
   return j;
 }
 function enqueue(op){
-  if(op.op==="saveNote") queue = queue.filter(q=>!(q.op==="saveNote"&&q.note.id===op.note.id));
+  if(op.op==="patchNote"){
+    const prev=queue.find(q=>q.op==="patchNote"&&q.id===op.id&&!inflight.has(q));
+    if(prev){ Object.assign(prev.patch,op.patch); prev.at=op.at; prev.by=op.by; lsSet("queue",queue); updSyncLabel(); scheduleFlush(); return; }
+  }
   queue.push(op); lsSet("queue",queue); updSyncLabel(); scheduleFlush();
 }
 let flushT=null, flushing=false; const inflight=new Set();
@@ -363,7 +366,20 @@ async function pull(silent){
     if(j.menuNames) lsSet("menuNames", j.menuNames);
     if(j.setNames) lsSet("setNames", j.setNames);
     let changed=false;
-    if(j.note && (+j.note.updatedAt||0) > (+note.updatedAt||0)){ note=j.note; cacheNote(); changed=true; }
+    if(j.note){
+      // 保存先の内容を正とし、この端末でまだ送っていない欄だけ手元の内容を残す
+      const merged=JSON.parse(JSON.stringify(j.note)); merged.attendance=merged.attendance||{};
+      ["menu","shooting","sets"].forEach(k=>{ if(!Array.isArray(merged[k])) merged[k]=[]; });
+      pendingKeys(curId).forEach(k=>{
+        if(k.startsWith("att:")){ const p=k.slice(4); if(note.attendance[p]) merged.attendance[p]=note.attendance[p]; else delete merged.attendance[p]; }
+        else merged[k]=note[k]; });
+      if(JSON.stringify(merged)!==JSON.stringify(note)){ note=merged; cacheNote(); changed=true; }
+    }
+    else if((+note.updatedAt||0)>0 && note.id===curId){
+      // 保存先にこの日のノートがない(復元などで消えた)ときは、手元の内容を全部送り直す
+      const keys=["no","start","end","court","theme","menu","shooting","sets","review","memo"].concat(Object.keys(note.attendance||{}).map(p=>"att:"+p));
+      touch(...keys);
+    }
     const pendingDel = new Set(queue.filter(q=>q.op==="delEvent").map(q=>q.eid));
     const pendingAdd = queue.filter(q=>q.op==="addEvent"&&q.ev.id===curId).map(q=>q.ev);
     const map = new Map();
@@ -390,7 +406,17 @@ function openPractice(id){
   renderAll(false);
   pull();
 }
-function touch(){ note.updatedAt=Date.now(); note.by=cfg.by||""; cacheNote(); enqueue({op:"saveNote", note:JSON.parse(JSON.stringify(note))}); }
+// keys:変えた欄の名前。出欠は選手ごとに "att:選手名"
+function touch(...keys){
+  note.updatedAt=Date.now(); note.by=cfg.by||""; cacheNote();
+  const patch={};
+  keys.forEach(k=>{ if(k.startsWith("att:")){ const p=k.slice(4); patch[k]=note.attendance[p]||null; } else patch[k]=JSON.parse(JSON.stringify(note[k]??"")); });
+  enqueue({op:"patchNote", id:note.id, date:note.date, patch, at:note.updatedAt, by:note.by});
+}
+// まだ送っていない(送信中を含む)欄
+function pendingKeys(id){
+  const ks=new Set(); queue.filter(q=>q.op==="patchNote"&&q.id===id).forEach(q=>Object.keys(q.patch).forEach(k=>ks.add(k))); return ks;
+}
 
 /* ====== 描画:ノート ====== */
 function renderAll(fromPull){
@@ -457,33 +483,33 @@ function renderSets(){
 /* ====== ノートの入力イベント ====== */
 function bindNote(){
   const simple = {fNo:"no",fStart:"start",fEnd:"end",fCourt:"court",fTheme:"theme",fReview:"review",fMemo:"memo"};
-  Object.entries(simple).forEach(([el,k])=>$("#"+el).addEventListener("input",e=>{ note[k]=e.target.value; touch(); }));
+  Object.entries(simple).forEach(([el,k])=>$("#"+el).addEventListener("input",e=>{ note[k]=e.target.value; touch(k); }));
   $("#att").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
     const p=b.dataset.p; const s=ATT[(ATT.indexOf(attOf(p))+1)%ATT.length];
-    if(s==="参加") delete note.attendance[p]; else note.attendance[p]=s; touch(); renderAtt(); renderRally(); });
-  $("#addMenu").onclick=()=>{ note.menu.push({name:"",min:"",note:""}); touch(); renderMenu();
+    if(s==="参加") delete note.attendance[p]; else note.attendance[p]=s; touch("att:"+p); renderAtt(); renderRally(); });
+  $("#addMenu").onclick=()=>{ note.menu.push({name:"",min:"",note:""}); touch("menu"); renderMenu();
     const ins=document.querySelectorAll("#menu input.name"); ins[ins.length-1]?.focus(); };
-  document.querySelectorAll("[data-rest]").forEach(b=>b.onclick=()=>{ note.menu.push({name:"休",min:b.dataset.rest,note:""}); touch(); renderMenu(); });
+  document.querySelectorAll("[data-rest]").forEach(b=>b.onclick=()=>{ note.menu.push({name:"休",min:b.dataset.rest,note:""}); touch("menu"); renderMenu(); });
   document.querySelector("[data-copy]").onclick=()=>{
     const last=[...note.menu].reverse().find(m=>!/^休/.test(m.name));
     if(!last){ toast("コピーするメニューがありません"); return; }
-    note.menu.push({name:last.name,min:last.min,note:last.note}); touch(); renderMenu(); };
+    note.menu.push({name:last.name,min:last.min,note:last.note}); touch("menu"); renderMenu(); };
   $("#menu").addEventListener("input",e=>{ const it=e.target.closest(".mi"); if(!it) return; const m=note.menu[+it.dataset.i];
     if(e.target.classList.contains("name")) m.name=e.target.value;
     if(e.target.classList.contains("min")) m.min=e.target.value;
-    if(e.target.classList.contains("mnote")) m.note=e.target.value; touch(); });
+    if(e.target.classList.contains("mnote")) m.note=e.target.value; touch("menu"); });
   $("#menu").addEventListener("change",e=>{ if(!e.target.classList.contains("name")) return;
     const it=e.target.closest(".mi"); const rest=/^休/.test(e.target.value);
     if(rest!==it.classList.contains("rest")){ const ae=document.activeElement; const cls=ae&&ae.className; const idx=it.dataset.i;
       renderMenu(); const again=document.querySelector(`#menu .mi[data-i="${idx}"] .${cls}`); if(again) again.focus(); } });
   $("#menu").addEventListener("click",e=>{ const it=e.target.closest(".mi"); if(!it) return; const i=+it.dataset.i;
     if(e.target.dataset.mv){ const j=i+(+e.target.dataset.mv); if(j<0||j>=note.menu.length) return;
-      [note.menu[i],note.menu[j]]=[note.menu[j],note.menu[i]]; touch(); renderMenu(); }
-    if(e.target.hasAttribute("data-del")){ note.menu.splice(i,1); touch(); renderMenu(); } });
+      [note.menu[i],note.menu[j]]=[note.menu[j],note.menu[i]]; touch("menu"); renderMenu(); }
+    if(e.target.hasAttribute("data-del")){ note.menu.splice(i,1); touch("menu"); renderMenu(); } });
   document.querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{
     const [name,rows]=b.dataset.sh.split("|");
     note.shooting.push({name, count:"", rows:(rows?rows.split(","):[""]).map(l=>({label:l,made:"",att:""}))});
-    touch(); renderShoot(); });
+    touch("shooting"); renderShoot(); });
   $("#shoot").addEventListener("input",e=>{ const box=e.target.closest(".sh"); if(!box) return; const s=note.shooting[+box.dataset.i];
     const t=e.target;
     if(t.classList.contains("sname")) s.name=t.value;
@@ -494,15 +520,15 @@ function bindNote(){
       if(t.classList.contains("rm")) r.made=t.value;
       if(t.classList.contains("ra")) r.att=t.value;
       row.querySelector(".pct").textContent=pct(r.made,r.att); }
-    touch(); });
+    touch("shooting"); });
   $("#shoot").addEventListener("click",e=>{ const box=e.target.closest(".sh"); if(!box) return; const i=+box.dataset.i; const s=note.shooting[i];
-    if(e.target.hasAttribute("data-sdel")){ if(confirm("「"+(s.name||"この種目")+"」を削除しますか?")){ note.shooting.splice(i,1); touch(); renderShoot(); } }
-    if(e.target.hasAttribute("data-radd")){ s.rows.push({label:"",made:"",att:""}); touch(); renderShoot(); }
-    if(e.target.hasAttribute("data-rdel")){ const j=+e.target.closest(".srow").dataset.j; s.rows.splice(j,1); if(!s.rows.length) s.rows.push({label:"",made:"",att:""}); touch(); renderShoot(); } });
-  const addSet=()=>{ const v=$("#setIn").value.trim(); if(!v) return; note.sets.push(v); $("#setIn").value=""; touch(); renderSets(); };
+    if(e.target.hasAttribute("data-sdel")){ if(confirm("「"+(s.name||"この種目")+"」を削除しますか?")){ note.shooting.splice(i,1); touch("shooting"); renderShoot(); } }
+    if(e.target.hasAttribute("data-radd")){ s.rows.push({label:"",made:"",att:""}); touch("shooting"); renderShoot(); }
+    if(e.target.hasAttribute("data-rdel")){ const j=+e.target.closest(".srow").dataset.j; s.rows.splice(j,1); if(!s.rows.length) s.rows.push({label:"",made:"",att:""}); touch("shooting"); renderShoot(); } });
+  const addSet=()=>{ const v=$("#setIn").value.trim(); if(!v) return; note.sets.push(v); $("#setIn").value=""; touch("sets"); renderSets(); };
   $("#addSet").onclick=addSet;
   $("#setIn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addSet(); } });
-  $("#sets").addEventListener("click",e=>{ const i=e.target.dataset.setdel; if(i==null) return; note.sets.splice(+i,1); touch(); renderSets(); });
+  $("#sets").addEventListener("click",e=>{ const i=e.target.dataset.setdel; if(i==null) return; note.sets.splice(+i,1); touch("sets"); renderSets(); });
 }
 
 /* ====== ラリー ====== */
