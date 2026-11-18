@@ -27,6 +27,7 @@ nav{display:flex;margin-top:8px}
 nav button{flex:1;background:none;border:none;color:#c9d1ea;font-size:15px;padding:10px 0;border-bottom:3px solid transparent;font-weight:600}
 nav button.on{color:#fff;border-bottom-color:var(--accent)}
 main{padding:12px;padding-bottom:120px;max-width:760px;margin:0 auto}
+body.rally main{padding-bottom:300px}
 .card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .card h2{font-size:15px;margin:0 0 10px;color:var(--navy);display:flex;align-items:center;gap:8px}
 .card h2 .grow{flex:1}
@@ -735,10 +736,16 @@ function setTab(t){
   tab=t; document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   ["note","rally","image","hist"].forEach(k=>$("#tab-"+k).classList.toggle("hidden",k!==t));
   $("#pad").classList.toggle("hidden",t!=="rally");
+  document.body.classList.toggle("rally",t==="rally"); fitPad();
   if(t==="image") drawImage();
   if(t==="hist") renderHist();
   if(t==="rally") renderRally();
   window.scrollTo(0,0);
+}
+// 記録ボタンの高さぶん、名簿の下に余白をとる(最後の選手が隠れないように)
+function fitPad(){
+  const pad=$("#pad"); const m=document.querySelector("main");
+  m.style.paddingBottom = (!pad.classList.contains("hidden") ? pad.offsetHeight+40 : 120)+"px";
 }
 function init(){
   bindNote(); bindRally();
@@ -753,6 +760,7 @@ function init(){
     lsSet("cfg",cfg); $("#dlgSettings").close(); updSyncLabel();
     if(cfg.api){ toast("接続を確認しています…"); await pull(); if(!$("#sync").classList.contains("err")) toast("接続しました"); } };
   window.addEventListener("online",()=>flush());
+  window.addEventListener("resize",fitPad);
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) pull(true); });
   setInterval(()=>{ if(!document.hidden) pull(true); }, 10000);
   const cur=lsGet("cur",null);
