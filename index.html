@@ -66,6 +66,8 @@ textarea{min-height:64px;resize:vertical}
 .sh .head{display:grid;grid-template-columns:1fr 64px 10px 64px 64px 28px;gap:4px;font-size:11px;color:var(--sub);margin-top:6px}
 /* ラリー */
 .rhead{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.segbar{display:flex;gap:8px;align-items:center;background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.segbar select{flex:1;font-weight:700;color:var(--navy)}
 .pl{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid transparent;border-radius:10px;padding:8px 10px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .pl.sel{border-color:var(--navy);background:#eef2ff}
 .pl .nm{width:52px;font-weight:700;font-size:17px;flex:none}
@@ -73,7 +75,8 @@ textarea{min-height:64px;resize:vertical}
 .pl .seq span{padding:0 2px;border-radius:4px}
 .pl .seq span.g{color:var(--ok)}
 .pl .seq span.b{color:var(--ng)}
-.pl .tot{font-size:11px;color:var(--sub);text-align:right;flex:none;width:64px;line-height:1.3}
+.pl .tot{font-size:11px;color:var(--sub);text-align:right;flex:none;width:72px;line-height:1.3}
+.pl .tot b{font-size:15px;color:var(--navy)}
 .pad{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);padding:8px 8px max(8px,env(safe-area-inset-bottom));box-shadow:0 -4px 12px rgba(0,0,0,.08)}
 .pad .who{font-size:13px;color:var(--sub);margin:0 2px 6px;display:flex;justify-content:space-between;align-items:center}
 .pad .who b{color:var(--navy);font-size:16px}
@@ -181,6 +184,11 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 
   <!-- ラリー -->
   <section id="tab-rally" class="hidden">
+    <div class="segbar">
+      <span class="note">形式</span>
+      <select id="segSel"></select>
+      <button class="btn sm pri" id="segAdd">+ 形式を追加</button>
+    </div>
     <div class="rhead">
       <div class="note" style="flex:1">選手をタップしてから、下のボタンで記録します。選んでいる選手の記号をタップすると、その記録を取り消せます。</div>
       <button class="btn sm" id="undo">↶ 1つ戻す</button>
@@ -243,19 +251,22 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 "use strict";
 /* ====== 設定 ====== */
 const TEAM = "福岡大学女子バスケットボール部";
-// ホワイトボードの書き方に合わせた記号
+// ホワイトボードの書き方に合わせた記号(× 成功・/ 失敗。FTも同じ書き方)
 const CODES = [
   {c:"M2", sym:"×",  lab:"2P成功", cls:"g"},
   {c:"X2", sym:"/",  lab:"2P失敗", cls:"b"},
   {c:"M3", sym:"⊗",  lab:"3P成功", cls:"g"},
   {c:"X3", sym:"⊘",  lab:"3P失敗", cls:"b"},
-  {c:"R",  sym:"R",  lab:"リバウンド", key:"リバウンド", cls:""},
-  {c:"OR", sym:"Ⓡ",  lab:"Oリバウンド", key:"Oリバ", cls:""},
+  {c:"FM", sym:"F×", lab:"FT成功", cls:"g"},
+  {c:"FX", sym:"F/", lab:"FT失敗", cls:"b"},
+  {c:"OR", sym:"Ⓡ",  lab:"Oリバウンド", key:"OR", cls:""},
+  {c:"R",  sym:"R",  lab:"Dリバウンド", key:"DR", cls:""},
   {c:"A",  sym:"A",  lab:"アシスト", cls:""},
   {c:"St", sym:"St", lab:"スティール", key:"スティール", cls:""},
   {c:"Bl", sym:"Bl", lab:"ブロック", cls:""},
   {c:"Df", sym:"Df", lab:"Df", cls:""},
   {c:"To", sym:"To", lab:"ターンオーバー", key:"TO", cls:"b"},
+  {c:"PF", sym:"PF", lab:"ファウル", cls:"b"},
 ];
 const CODE = Object.fromEntries(CODES.map(x=>[x.c,x]));
 const DEFAULT_PLAYERS = ["カイ","レイ","マイ","サク","サン","トア","コウ","ライ","セル","ノア","ココ","リノ","ラキ","ツキ","チイ","ユウ","ネオ","ヒマ","リン","ユラ"];
@@ -371,6 +382,7 @@ function openPractice(id){
   curId=id;
   note = lsGet("note_"+id,null) || emptyNote(id);
   events = lsGet("ev_"+id,[]);
+  curSeg = lsGet("cur_seg_"+id,null) || (events.length? segOf(events[events.length-1]) : DEF_SEG);
   $("#pickDate").value = idDate(id);
   $("#pickPart").value = id.length>10? id.slice(11) : "1";
   lsSet("cur", id);
@@ -494,19 +506,33 @@ function bindNote(){
 
 /* ====== ラリー ====== */
 function tally(list){
-  const t={}; CODES.forEach(c=>t[c.c]=0); list.forEach(e=>{ if(t[e.code]!=null) t[e.code]++; }); return t;
+  const t={}; CODES.forEach(c=>t[c.c]=0); list.forEach(e=>{ if(t[e.code]!=null) t[e.code]++; });
+  t.PTS = t.M2*2 + t.M3*3 + t.FM; t.FGM=t.M2+t.M3; t.FGA=t.FGM+t.X2+t.X3; t.REB=t.R+t.OR;
+  return t;
+}
+const DEF_SEG="ラリー";
+let curSeg=DEF_SEG;
+function segOf(e){ return e.seg||DEF_SEG; }
+function segList(){
+  const seen=[]; events.forEach(e=>{ const s=segOf(e); if(!seen.includes(s)) seen.push(s); });
+  lsGet("segs_"+curId,[]).forEach(s=>{ if(!seen.includes(s)) seen.push(s); });
+  if(!seen.includes(curSeg)) seen.push(curSeg);
+  return seen;
+}
+function renderSegs(){
+  $("#segSel").innerHTML = segList().map(s=>`<option ${s===curSeg?"selected":""}>${esc(s)}</option>`).join("");
 }
 function renderRally(){
   const showAbs=$("#showAbsent").checked;
-  const byP={}; events.forEach(e=>{ (byP[e.player]=byP[e.player]||[]).push(e); });
+  renderSegs();
+  const byP={}; events.filter(e=>segOf(e)===curSeg).forEach(e=>{ (byP[e.player]=byP[e.player]||[]).push(e); });
   const list = players.filter(p=> showAbs || attOf(p)!=="欠席" || byP[p]);
   $("#plist").innerHTML = list.map(p=>{
     const ev=byP[p]||[]; const t=tally(ev);
-    const fgm=t.M2+t.M3, fga=fgm+t.X2+t.X3;
     return `<div class="pl ${selPlayer===p?"sel":""}" data-p="${esc(p)}">
       <div class="nm">${esc(p)}</div>
       <div class="seq">${ev.map(e=>`<span class="${CODE[e.code]?.cls||""}" data-eid="${e.eid}">${esc(CODE[e.code]?.sym||e.code)}</span>`).join("")}</div>
-      <div class="tot">${fga?`FG ${fgm}/${fga}`:""}${t.To?`<br>To ${t.To}`:""}</div>
+      <div class="tot">${ev.length?`<b>${t.PTS}</b>点`:""}${t.FGA?`<br>FG ${t.FGM}/${t.FGA}`:""}${t.PF?`<br>PF ${t.PF}`:""}</div>
     </div>`; }).join("");
   $("#selName").textContent = selPlayer||"未選択";
   document.querySelectorAll("#keys button").forEach(b=>b.disabled=!selPlayer);
@@ -514,6 +540,7 @@ function renderRally(){
 function bindRally(){
   $("#keys").innerHTML = CODES.map(c=>`<button class="${c.cls}" data-c="${c.c}">${c.sym}<small>${c.key||c.lab}</small></button>`).join("")
     + `<button data-c="__desel" style="font-size:13px">選手<small>解除</small></button>`;
+  // 13個+解除:6列で、1段目=シュート、2段目=リバウンドなど、3段目=TO・PF
   $("#plist").addEventListener("click",e=>{
     const sp=e.target.closest("span[data-eid]");
     const plRow=e.target.closest(".pl");
@@ -525,15 +552,23 @@ function bindRally(){
   $("#keys").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b||b.disabled) return;
     if(b.dataset.c==="__desel"){ selPlayer=null; renderRally(); return; }
     if(!selPlayer) return;
-    const ev={eid:uid(), id:curId, player:selPlayer, code:b.dataset.c, ts:Date.now(), by:cfg.by||""};
+    const ev={eid:uid(), id:curId, player:selPlayer, code:b.dataset.c, ts:Date.now(), by:cfg.by||"", seg:curSeg};
     events.push(ev); cacheEvents(); enqueue({op:"addEvent", ev});
     $("#lastAct").textContent = selPlayer+" "+CODE[ev.code].sym+"("+CODE[ev.code].lab+")";
     if(navigator.vibrate) try{navigator.vibrate(15);}catch(_){}
     renderRally(); });
-  $("#undo").onclick=()=>{ const mine=[...events].reverse().find(e=>(e.by||"")===(cfg.by||"")) || events[events.length-1];
+  $("#undo").onclick=()=>{ const inSeg=events.filter(e=>segOf(e)===curSeg);
+    const mine=[...inSeg].reverse().find(e=>(e.by||"")===(cfg.by||"")) || inSeg[inSeg.length-1];
     if(!mine){ toast("取り消す記録がありません"); return; }
     removeEvent(mine.eid); toast(mine.player+" の「"+CODE[mine.code].lab+"」を取り消しました"); };
   $("#showAbsent").onchange=renderRally;
+  $("#segSel").onchange=e=>{ curSeg=e.target.value; lsSet("cur_seg_"+curId,curSeg); selPlayer=null; renderRally(); };
+  $("#segAdd").onclick=()=>{
+    const cand=[...new Set(note.menu.map(m=>m.name).filter(n=>n&&!/^休/.test(n)))];
+    const name=(prompt("形式の名前を入れてください(例:4対4 ラリー、5on5)"+(cand.length?"\n今日のメニュー:"+cand.join("、"):""),"")||"").trim();
+    if(!name) return;
+    const segs=lsGet("segs_"+curId,[]); if(!segs.includes(name)){ segs.push(name); lsSet("segs_"+curId,segs); }
+    curSeg=name; lsSet("cur_seg_"+curId,curSeg); selPlayer=null; renderRally(); toast("「"+name+"」で記録します"); };
 }
 function removeEvent(eid){
   events = events.filter(e=>e.eid!==eid); cacheEvents();
@@ -607,28 +642,32 @@ function paint(cv){
     note.sets.forEach(s=>{ ctx.fillStyle="#1b1f2a"; f(600,26); wrapLines(ctx,"☆ "+s,RW).forEach(l=>{ctx.fillText(l,RX,ry); ry+=36;}); });
   }
   y=Math.max(ly,ry)+16;
-  // ラリー集計
+  // スクリメイジ集計(形式ごと+1日の合計)
   if(events.length){
-    y=heading("ラリー 個人記録",P,y,W-2*P);
-    const cols=[["選手",0],["2P",130],["3P",250],["FG%",370],["R(OR)",485],["A",615],["St",695],["Bl",775],["Df",855],["To",935]];
-    ctx.fillStyle="#6b7280"; f(600,22); cols.forEach(([t,x])=>ctx.fillText(t,P+x,y)); y+=12;
-    ctx.fillStyle="#dfe2ea"; ctx.fillRect(P,y,W-2*P,2); y+=34;
-    const byP={}; events.forEach(e=>(byP[e.player]=byP[e.player]||[]).push(e));
-    const order=players.filter(p=>byP[p]).concat(Object.keys(byP).filter(p=>!players.includes(p)));
-    const all=tally(events);
-    const rowOf=(name,t,bold)=>{
-      const fgm=t.M2+t.M3, fga=fgm+t.X2+t.X3;
-      const v=[name, `${t.M2}/${t.M2+t.X2}`, `${t.M3}/${t.M3+t.X3}`, fga?Math.round(fgm/fga*100)+"%":"—",
-        `${t.R+t.OR}(${t.OR})`, t.A, t.St, t.Bl, t.Df, t.To];
-      f(bold?800:500,25);
-      v.forEach((s,i)=>{ ctx.fillStyle = i===9&&t.To? "#c0392b" : "#1b1f2a"; ctx.fillText(String(s),P+cols[i][1],y); });
-      y+=36;
+    const segs=[]; events.forEach(e=>{ const sg=segOf(e); if(!segs.includes(sg)) segs.push(sg); });
+    const cols=[["選手",0],["PTS",92],["2P",160],["3P",250],["FT",340],["FG%",428],["OR",510],["DR",566],["REB",622],["A",690],["St",738],["Bl",786],["To",834],["PF",882],["Df",936]];
+    const table=(title,list)=>{
+      y=heading(title,P,y,W-2*P);
+      ctx.fillStyle="#6b7280"; f(600,21); cols.forEach(([t,x])=>ctx.fillText(t,P+x,y)); y+=12;
+      ctx.fillStyle="#dfe2ea"; ctx.fillRect(P,y,W-2*P,2); y+=34;
+      const byP={}; list.forEach(e=>(byP[e.player]=byP[e.player]||[]).push(e));
+      const order=players.filter(p=>byP[p]).concat(Object.keys(byP).filter(p=>!players.includes(p)));
+      const rowOf=(name,t,bold)=>{
+        const v=[name, t.PTS, `${t.M2}/${t.M2+t.X2}`, `${t.M3}/${t.M3+t.X3}`, `${t.FM}/${t.FM+t.FX}`,
+          t.FGA?Math.round(t.FGM/t.FGA*100)+"%":"—", t.OR, t.R, t.REB, t.A, t.St, t.Bl, t.To, t.PF, t.Df];
+        v.forEach((sv,i)=>{ f(bold||i===1?800:500, i===1?27:24);
+          ctx.fillStyle = (i===12&&t.To)||(i===13&&t.PF>=4)? "#c0392b" : i===1? "#16244f" : "#1b1f2a";
+          ctx.fillText(String(sv),P+cols[i][1],y); });
+        y+=36;
+      };
+      order.forEach((p,i)=>{ if(i%2===0){ ctx.fillStyle="#f5f6f9"; ctx.fillRect(P-8,y-27,W-2*P+16,36);} rowOf(p,tally(byP[p]),false); });
+      ctx.fillStyle="#16244f"; ctx.fillRect(P,y-24,W-2*P,2); y+=6;
+      rowOf("合計",tally(list),true); y+=18;
     };
-    order.forEach((p,i)=>{ if(i%2===0){ ctx.fillStyle="#f5f6f9"; ctx.fillRect(P-8,y-27,W-2*P+16,36);} rowOf(p,tally(byP[p]),false); });
-    ctx.fillStyle="#16244f"; ctx.fillRect(P,y-24,W-2*P,2); y+=6;
-    rowOf("合計",all,true);
+    segs.forEach(sg=>table("スクリメイジ:"+sg, events.filter(e=>segOf(e)===sg)));
+    if(segs.length>1) table("1日の合計("+segs.length+"形式)", events);
     ctx.fillStyle="#9aa0ab"; f(400,20);
-    ctx.fillText("R(OR)=リバウンド合計(うちオフェンスリバウンド)",P,y); y+=56;
+    ctx.fillText("2P・3P・FT=成功/試投 OR=オフェンスリバウンド DR=ディフェンスリバウンド PF=ファウル(4以上は赤)",P,y-4); y+=48;
   }
   // 出欠
   const groups={}; players.forEach(p=>{ const s=attOf(p); (groups[s]=groups[s]||[]).push(p); });
