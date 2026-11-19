@@ -321,6 +321,7 @@ let practiceList = lsGet("list", []);   // [{id,no,date}]
 let queue = lsGet("queue", []);
 let curId = null, note = null, events = [], selPlayer = null, tab = "note";
 
+const VALID_ID=/^\d{4}-\d{2}-\d{2}(-\d)?$/;  // 2026-11-17 / 2026-11-17-2 の形だけを練習として扱う
 function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function makeId(date,part){ return part==="1"?date:date+"-"+part; }
 function idDate(id){ return id.slice(0,10); }
@@ -378,7 +379,7 @@ async function pull(silent){
   try{
     const j = await api({action:"get", id:curId});
     if(j.players && j.players.length){ players=j.players; lsSet("players",players); }
-    if(j.list){ practiceList=j.list; lsSet("list",practiceList); }
+    if(j.list){ practiceList=j.list.filter(p=>VALID_ID.test(p.id)); lsSet("list",practiceList); }
     if(j.menuNames) lsSet("menuNames", j.menuNames);
     if(j.setNames) lsSet("setNames", j.setNames);
     let changed=false;
@@ -392,7 +393,7 @@ async function pull(silent){
       if(JSON.stringify(merged)!==JSON.stringify(note)){ note=merged; cacheNote(); changed=true; }
     }
     else if(!(+note.updatedAt) && note.id===curId && j.list){
-      const mx=Math.max(0,...j.list.filter(p=>p.id!==curId).map(p=>parseInt(p.no)||0));
+      const mx=Math.max(0,...practiceList.filter(p=>p.id!==curId).map(p=>parseInt(p.no)||0));
       if(String(note.no)!==String(mx+1)){ note.no=String(mx+1); changed=true; }
     }
     else if((+note.updatedAt||0)>0 && note.id===curId){
@@ -762,7 +763,7 @@ function downloadImage(){
 
 /* ====== 履歴 ====== */
 function renderHist(){
-  const local = allLocalNotes().map(n=>({id:n.id,no:n.no}));
+  const local = allLocalNotes().filter(n=>VALID_ID.test(n.id)).map(n=>({id:n.id,no:n.no}));
   const m=new Map(); practiceList.concat(local).forEach(p=>m.set(p.id,{...(m.get(p.id)||{}),...p}));
   const list=[...m.values()].sort((a,b)=>b.id.localeCompare(a.id));
   $("#hist").innerHTML = list.map(p=>`<a href="#" data-id="${p.id}"><span>${fmtDate(p.id)}</span><span class="note">${p.no?"No."+p.no:""}</span></a>`).join("") || `<div class="note">まだ記録がありません。</div>`;
@@ -830,7 +831,7 @@ function init(){
 async function migrateLocal(){
   if(lsGet("migrated_v1",false)) return;
   const filled=v=>Array.isArray(v)?v.length>0:(v&&typeof v==="object")?Object.keys(v).length>0:(v!==""&&v!=null);
-  for(const id of lsGet("noteIds",[]).concat(Object.keys(localStorage).filter(k=>k.startsWith("pn_ev_")).map(k=>k.slice(6)))){
+  for(const id of [...new Set(lsGet("noteIds",[]).concat(Object.keys(localStorage).filter(k=>k.startsWith("pn_ev_")).map(k=>k.slice(6))))].filter(i=>VALID_ID.test(i))){
     let srv=null, sev=[];
     try{ const j=await api({action:"get",id}); srv=j.note; sev=j.events||[]; }catch(e){ return; } // つながらなければ次回
     const loc=lsGet("note_"+id,null);
