@@ -233,6 +233,19 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 
 <div class="toast" id="toast"></div>
 
+<dialog id="dlgGate">
+  <h3 style="margin:0 0 6px">練習ノートを使う準備</h3>
+  <p class="note" style="margin:0 0 8px">この端末で初めて開いたときだけ必要です。入力した記録は、部の共有の保存先に送られます。</p>
+  <label class="f">記録者の名前(例:ハル)</label>
+  <input type="text" id="gBy">
+  <label class="f">PIN(監督から聞いた番号)</label>
+  <input type="text" id="gPin" inputmode="numeric">
+  <p id="gErr" style="color:#c0392b;font-size:14px;min-height:1em;margin:8px 0 0"></p>
+  <div class="row" style="justify-content:flex-end;margin-top:8px">
+    <button class="btn pri big" id="gOk">はじめる</button>
+  </div>
+</dialog>
+
 <dialog id="dlgSettings">
   <h3 style="margin:0 0 8px">設定</h3>
   <label class="f">記録者の名前(画像に表示)</label>
@@ -241,7 +254,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
   <input type="text" id="sApi" placeholder="https://script.google.com/macros/s/.../exec">
   <label class="f">PIN</label>
   <input type="text" id="sPin" inputmode="numeric">
-  <p class="note">保存先URLが空の場合は、この端末の中だけに保存されます(2人で同時入力するには保存先URLが必要です)。</p>
+  <p class="note">保存先URLとPINは、ふだん変える必要はありません。</p>
   <div class="row" style="justify-content:flex-end;margin-top:10px">
     <button class="btn" id="sCancel">閉じる</button>
     <button class="btn pri" id="sSave">保存</button>
@@ -291,7 +304,10 @@ const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("on"),1600); }
 
 /* ====== 状態 ====== */
+// 保存先(部の共有スプレッドシート)。どの端末で開いても、ここに保存される
+const DEFAULT_API = "https://script.google.com/macros/s/AKfycbxcywICdJpsu7ptt1lp-meAJ2cLHFKso052BZAkxxhX7CGK99MCtiYfOaCdg551zPVS/exec";
 let cfg = lsGet("cfg", {api:"", pin:"", by:""});
+if(!cfg.api) cfg.api = DEFAULT_API;
 // #api=...&pin=... 付きのリンクで開いたら設定を取り込む
 (function(){
   if(location.hash.length>1){
@@ -322,7 +338,7 @@ function cacheEvents(){ lsSet("ev_"+curId, events); }
 /* ====== 同期 ====== */
 function setSync(state,txt){ const s=$("#sync"); s.className="sync "+(state||""); s.textContent=txt; }
 function updSyncLabel(){
-  if(!cfg.api){ setSync("","端末内のみ"); return; }
+  if(!cfg.api||!cfg.pin){ setSync("err","未接続"); return; }
   if(queue.length) setSync("wait","未送信 "+queue.length); else setSync("","保存済み");
 }
 async function api(body){
@@ -374,6 +390,10 @@ async function pull(silent){
         if(k.startsWith("att:")){ const p=k.slice(4); if(note.attendance[p]) merged.attendance[p]=note.attendance[p]; else delete merged.attendance[p]; }
         else merged[k]=note[k]; });
       if(JSON.stringify(merged)!==JSON.stringify(note)){ note=merged; cacheNote(); changed=true; }
+    }
+    else if(!(+note.updatedAt) && note.id===curId && j.list){
+      const mx=Math.max(0,...j.list.filter(p=>p.id!==curId).map(p=>parseInt(p.no)||0));
+      if(String(note.no)!==String(mx+1)){ note.no=String(mx+1); changed=true; }
     }
     else if((+note.updatedAt||0)>0 && note.id===curId){
       // 保存先にこの日のノートがない(復元などで消えた)ときは、手元の内容を全部送り直す
@@ -791,8 +811,39 @@ function init(){
   setInterval(()=>{ if(!document.hidden) pull(true); }, 10000);
   const cur=lsGet("cur",null);
   openPractice(cur && idDate(cur)===todayStr() ? cur : todayStr());
-  updSyncLabel(); if(queue.length) scheduleFlush(300);
-  if(!cfg.by) setTimeout(()=>$("#btnSettings").click(),400);
+  updSyncLabel();
+  $("#gOk").onclick=async()=>{
+    const by=$("#gBy").value.trim(), pin=$("#gPin").value.trim();
+    if(!by||!pin){ $("#gErr").textContent="名前とPINを入れてください"; return; }
+    $("#gErr").textContent="確認しています…";
+    try{ const r=await fetch(cfg.api,{method:"POST",body:JSON.stringify({pin,action:"get",id:curId})}); const j=await r.json();
+      if(!j.ok) throw new Error(j.error||"");
+    }catch(e){ $("#gErr").textContent = /PIN/.test(e.message)? "PINが違います" : "接続できません。電波を確認してもう一度押してください"; return; }
+    cfg.by=by; cfg.pin=pin; lsSet("cfg",cfg); $("#dlgGate").close(); updSyncLabel();
+    await migrateLocal(); await pull(); toast("接続しました");
+  };
+  $("#dlgGate").addEventListener("cancel",e=>e.preventDefault());
+  if(!cfg.pin||!cfg.by){ $("#gBy").value=cfg.by||""; $("#gPin").value=cfg.pin||""; $("#dlgGate").showModal(); }
+  else { migrateLocal().then(()=>{ if(queue.length) scheduleFlush(300); }); }
+}
+// この端末の中だけに残っている記録を、保存先へ送る(保存先が空の欄だけ埋める。ほかの人の入力は消さない)
+async function migrateLocal(){
+  if(lsGet("migrated_v1",false)) return;
+  const filled=v=>Array.isArray(v)?v.length>0:(v&&typeof v==="object")?Object.keys(v).length>0:(v!==""&&v!=null);
+  for(const id of lsGet("noteIds",[]).concat(Object.keys(localStorage).filter(k=>k.startsWith("pn_ev_")).map(k=>k.slice(6)))){
+    let srv=null, sev=[];
+    try{ const j=await api({action:"get",id}); srv=j.note; sev=j.events||[]; }catch(e){ return; } // つながらなければ次回
+    const loc=lsGet("note_"+id,null);
+    if(loc && (+loc.updatedAt||0)>0){
+      const patch={};
+      ["no","start","end","court","theme","menu","shooting","sets","review","memo"].forEach(k=>{ if(filled(loc[k]) && !(srv&&filled(srv[k]))) patch[k]=loc[k]; });
+      Object.entries(loc.attendance||{}).forEach(([p,st])=>{ if(!(srv&&srv.attendance&&srv.attendance[p])) patch["att:"+p]=st; });
+      if(Object.keys(patch).length) enqueue({op:"patchNote", id, date:id.slice(0,10), patch, at:Date.now(), by:cfg.by||loc.by||""});
+    }
+    const have=new Set(sev.map(e=>e.eid));
+    lsGet("ev_"+id,[]).filter(e=>!have.has(e.eid)).forEach(e=>enqueue({op:"addEvent", ev:e}));
+  }
+  lsSet("migrated_v1",true);
 }
 init();
 </script>
