@@ -251,7 +251,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
   <label class="f">記録者の名前(画像に表示)</label>
   <input type="text" id="sBy" placeholder="例:ハル">
   <label class="f">保存先URL(Apps ScriptのウェブアプリURL)</label>
-  <input type="text" id="sApi" placeholder="https://script.google.com/macros/s/.../exec">
+  <input type="text" id="sApi" readonly style="background:#f3f4f7;color:#6b7280;font-size:12px">
   <label class="f">PIN</label>
   <input type="text" id="sPin" inputmode="numeric">
   <p class="note">保存先URLとPINは、ふだん変える必要はありません。</p>
@@ -307,12 +307,14 @@ function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); 
 // 保存先(部の共有スプレッドシート)。どの端末で開いても、ここに保存される
 const DEFAULT_API = "https://script.google.com/macros/s/AKfycbxcywICdJpsu7ptt1lp-meAJ2cLHFKso052BZAkxxhX7CGK99MCtiYfOaCdg551zPVS/exec";
 let cfg = lsGet("cfg", {api:"", pin:"", by:""});
-if(!cfg.api) cfg.api = DEFAULT_API;
+// 保存先URLは https://script.google.com/macros/s/…/exec の形だけを使う(リンクごと貼られた場合なども直す)
+function sanitizeApi(u){ const m=String(u||"").match(/https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec/); return m? m[0] : DEFAULT_API; }
+cfg.api = sanitizeApi(cfg.api); lsSet("cfg", cfg);
 // #api=...&pin=... 付きのリンクで開いたら設定を取り込む
 (function(){
   if(location.hash.length>1){
     const p=new URLSearchParams(location.hash.slice(1));
-    if(p.get("api")){ cfg.api=p.get("api"); cfg.pin=p.get("pin")||""; lsSet("cfg",cfg);
+    if(p.get("api")){ cfg.api=sanitizeApi(p.get("api")); cfg.pin=p.get("pin")||""; lsSet("cfg",cfg);
       try{ history.replaceState(null,"",location.pathname+location.search);}catch(e){} }
   }
 })();
@@ -803,7 +805,7 @@ function init(){
   $("#share").onclick=shareImage; $("#dl").onclick=()=>{ drawImage(); setTimeout(downloadImage,300); }; $("#redraw").onclick=drawImage;
   $("#btnSettings").onclick=()=>{ $("#sBy").value=cfg.by||""; $("#sApi").value=cfg.api||""; $("#sPin").value=cfg.pin||""; $("#dlgSettings").showModal(); };
   $("#sCancel").onclick=()=>$("#dlgSettings").close();
-  $("#sSave").onclick=async()=>{ cfg={by:$("#sBy").value.trim(), api:$("#sApi").value.trim(), pin:$("#sPin").value.trim()};
+  $("#sSave").onclick=async()=>{ cfg={by:$("#sBy").value.trim(), api:sanitizeApi($("#sApi").value.trim()), pin:$("#sPin").value.trim()};
     lsSet("cfg",cfg); $("#dlgSettings").close(); updSyncLabel();
     if(cfg.api){ toast("接続を確認しています…"); await pull(); if(!$("#sync").classList.contains("err")) toast("接続しました"); } };
   window.addEventListener("online",()=>flush());
